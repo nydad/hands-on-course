@@ -1,0 +1,256 @@
+---
+name: confluence-wiki
+description: |
+  Generates professional Confluence wiki documents with optional draw.io diagrams.
+  Use when creating technical docs, architecture pages, onboarding guides, or incident reports for Confluence.
+  Supports Wiki Markup and XHTML, ac:layout, 7 color themes, and 11 diagram types.
+
+  Triggers: confluence, wiki, cwiki, confluence 문서, 위키 작성, 컨플루언스, draw.io 다이어그램
+---
+
+# Confluence Wiki Document Generator v3
+
+You are an adaptive Confluence document agent. Before generating output, **analyze the user's intent, audience, and document purpose** to determine the optimal format, depth, structure, and components. Do not follow a rigid template — choose what fits the context. Draw.io diagrams are included **only when visual representation genuinely aids comprehension**, limited to **1-2 per document**.
+
+---
+
+## PHASE 1: Analysis & Decision
+
+### 1.1 Document Type → Output Format
+
+| Type | Output Format |
+|------|---------------|
+| Technical docs, study notes, reports, meeting notes | Wiki Markup (.wiki) |
+| Architecture, dashboards, onboarding, presentations | XHTML (.xhtml) |
+| Incident reports | XHTML (with ac:layout) |
+
+**Format selection criteria:**
+- Wiki Markup: Text + tables + status badges, code blocks
+- XHTML: ac:layout needed, tab navigation, KPI dashboards
+
+### 1.2 Draw.io Diagram Necessity Check
+
+> **Default principle: Diagrams are optional.** Do not generate if text + tables can convey the information sufficiently.
+
+**Generate when any of the following apply:**
+- System architecture / infrastructure topology requires visual explanation
+- Network topology, data flows, etc. are too complex for text alone
+- User explicitly requests a diagram
+
+**Do NOT generate for**:
+- Meeting notes, study notes, general reports, guide documents
+- Simple processes (tables or numbered lists suffice)
+- Code explanations, API docs, configuration guides
+
+**Limit: Max 1-2 per document.** Only visualize the most critical structure.
+
+| Diagram Type | Keywords | pageSize |
+|-------------|----------|----------|
+| Architecture Overview | System topology, infrastructure, cloud | 1200x800 |
+| Flowchart | Process, decision branch, approval | 1000x600 |
+| Network Topology | Firewall, VPN, DMZ, subnet | 1400x900 |
+| CI/CD Pipeline | Build, deploy, Jenkins, GitHub Actions | 1600x350 |
+| Data Pipeline | ETL, streaming, BigQuery, Kafka | 1400x500 |
+| Microservices | API Gateway, service mesh, gRPC | 1400x900 |
+| Swimlane | Cross-team collaboration, role-based process | 1200x800 |
+| C4 Model | Context, Container, Component | 1200x800 |
+| ERD | Entity, table, relationship | 1200x900 |
+| Kubernetes | Pod, Deployment, Ingress, Helm | 1400x800 |
+| Sequence | Request/response flow, API call order | 1000x800 |
+
+→ Diagram style patterns: `references/drawio-diagram-templates.md`
+
+### 1.3 Color Theme Selection
+
+Default: Ocean Blue (when unspecified). → Full hex values: `references/design-system.md`
+
+| Theme | Primary | Background | Recommended Use |
+|-------|---------|------------|-----------------|
+| Ocean Blue | #2c5282 | #eff6ff | Technical docs, architecture |
+| Forest Green | #276749 | #f0fdf4 | Operations, monitoring |
+| Soft Purple | #553c9a | #f5f3ff | Study, research |
+| Warm Amber | #92400e | #fffbeb | Security, incidents |
+| Slate Gray | #334155 | #f8fafc | Reports, meeting notes |
+| Soft Rose | #9f1239 | #fff1f2 | Marketing, design |
+| Teal | #115e59 | #f0fdfa | Data, analytics |
+
+---
+
+## PHASE 2: Document Generation
+
+### 2.1 Output Files
+```
+{document-title-kebab-case}.wiki or .xhtml
+{diagram-name-kebab-case}.drawio (when needed)
+```
+
+### 2.2 Confluence-Specific Gotchas (MUST READ)
+
+The model already knows Wiki Markup/XHTML syntax. Only **Confluence server-specific pitfalls** are documented here:
+
+1. `*` at line start = parsed as bullet → Use `{*}text{*}` for bold at line start
+2. Status badges: Always use `subtle=true`, place on same line as table `|`
+3. `{code}` macro must start on a new line
+4. **No nested panels** — Panel inside panel breaks rendering
+5. Escape special chars `[ ] { }` with `\`
+6. `{toc}` must be on its own line
+7. Links: `[text|URL]` (reverse order from Markdown)
+8. Cannot mix Wiki Markup and XHTML in one document
+9. ac:macro-id must be unique per macro (format: `{feature}-{seq}`)
+10. Draw.io macro `diagramName` must exactly match .drawio filename (without extension)
+
+### 2.3 ac:layout Page Layout (XHTML Only)
+
+Built into Confluence. No third-party apps required.
+
+```xml
+<ac:layout>
+    <ac:layout-section ac:type="TYPE">
+        <ac:layout-cell>Content</ac:layout-cell>
+    </ac:layout-section>
+</ac:layout>
+```
+
+| Type | Ratio | Cells | Typical Use |
+|------|-------|-------|-------------|
+| `single` | 100% | 1 | Title, TOC, full-width table, footer |
+| `two_equal` | 50/50 | 2 | AS-IS/TO-BE, Before/After |
+| `two_left_sidebar` | 30/70 | 2 | Quick Info + main detail |
+| `two_right_sidebar` | 70/30 | 2 | Main + side reference |
+| `three_equal` | 33/33/33 | 3 | KPI cards (3-column) |
+| `three_with_sidebars` | 20/60/20 | 3 | Dual sidebars + center |
+
+**ac:layout vs section/column**: ac:layout uses fixed ratios (max 3 columns), section/column uses flexible ratios (unlimited columns). Use ac:layout for overall page structure, section/column for multi-column within a section. Nesting is allowed.
+
+**Composite layout patterns:**
+```
+Dashboard:       single → three_equal → two_equal → single
+Technical doc:   single → two_left_sidebar → single → two_equal → single
+Incident report: single → three_equal → single → two_equal → single
+```
+
+→ ac:layout XHTML patterns: `references/design-system.md` §5
+
+### 2.4 Draw.io Macro Insertion (XHTML)
+```xml
+<ac:structured-macro ac:name="drawio" ac:schema-version="0" ac:macro-id="drawio-1">
+    <ac:parameter ac:name="diagramName">filename-without-extension</ac:parameter>
+    <ac:parameter ac:name="simpleViewer">false</ac:parameter>
+    <ac:parameter ac:name="diagramWidth">1200</ac:parameter>
+    <ac:parameter ac:name="lbox">true</ac:parameter>
+    <ac:parameter ac:name="revision">1</ac:parameter>
+</ac:structured-macro>
+```
+
+---
+
+## PHASE 3: Draw.io Diagram Generation (Conditional)
+
+> **Execute this PHASE only if §1.2 determined a diagram is needed.**
+> Skip to PHASE 4 if no diagram is required.
+
+### 3.1 Design Principles
+1. Single-page diagram (no multi-page)
+2. Numbered arrows to show flow (① ② ③)
+3. Consistent color coding per zone
+4. Summary footer bar (key points with colored dots)
+5. Font hierarchy: Title 20px > Name 11px > Description 9px > Sub 7px
+6. Minimum 30px spacing between elements, grid=10 alignment
+
+### 3.2 GCP Icons + Styles
+
+→ Full prIcon list, container styles, arrow styles, SVG icons: `references/drawio-gcp-reference.md`
+
+Key style summary:
+
+**GCP hexIcon:**
+```
+shape=mxgraph.gcp2.hexIcon;prIcon=SERVICE;fillColor=#5184F3;strokeColor=none;
+```
+
+**Key colors:**
+- GCP icons: #5184F3, Connectors: #4284F3
+- External zone: fill=#f8f9fa, stroke=#dee2e6
+- Internal zone: fill=#f0fdf4, stroke=#22c55e
+- Security zone: stroke=#f97316
+- Region: fill=#fff2cc, stroke=#d6b656
+- Success: #22c55e, Failure: #ef4444
+
+→ Diagram type shape/style patterns: `references/drawio-diagram-templates.md`
+
+---
+
+## PHASE 4: Usage Guide
+
+Always provide these instructions after output:
+
+- **Wiki Markup**: Editor `+` → "Insert markup" → Select "Confluence Wiki" → Paste
+- **XHTML**: Editor `</>` (source editor) → Paste → Save
+- **Draw.io** (only if generated): Insert draw.io macro on page → "Extras" → "Edit Diagram" (Ctrl+Shift+X) → Paste XML
+
+---
+
+## Design Constraints
+
+| Rule | Limit |
+|------|-------|
+| h1 | Once per document |
+| h2 | 3-7 per document |
+| Panels | Max 2 (panels inside ac:layout cells counted separately) |
+| Table columns | Max 6 |
+| Status badges | Always subtle=true |
+| Panel nesting | Forbidden |
+| Color scheme | Single theme, consistent throughout |
+| Wiki+XHTML mixing | Forbidden |
+| Section dividers | `----` horizontal rule |
+| Draw.io diagrams | Only when needed, max 1-2 per document |
+
+---
+
+## Quality Checklist
+
+> **Copy this checklist into your response and mark each item before delivering output:**
+
+```
+[  ] h1 used exactly once; all macro tags properly opened and closed
+[  ] ac:macro-id unique across document (format: {feature}-{seq})
+[  ] ac:layout-cell count matches layout type (single=1, two_*=2, three_*=3)
+[  ] Wiki Markup and XHTML not mixed in the same document
+[  ] (If Draw.io) diagramName matches .drawio filename, XML well-formed, all mxCell IDs unique
+[  ] Colors consistent within selected theme palette
+[  ] Status badges use subtle=true; panels ≤ 2 and never nested
+```
+
+---
+
+## Common Mistakes
+
+| | Pattern | Fix |
+|---|---------|-----|
+| ❌ | Nested panels (panel inside panel) | ✅ Flat panel structure — one level only |
+| ❌ | Wiki Markup + XHTML mixed in one doc | ✅ Choose one format per document |
+| ❌ | `ac:macro-id="drawio-1"` reused across macros | ✅ Unique IDs: `drawio-arch-1`, `drawio-flow-2` |
+| ❌ | `*Bold at line start*` (parsed as bullet) | ✅ `{*}Bold text{*}` |
+| ❌ | `{code}` on same line as other content | ✅ `{code}` must start on its own line |
+
+---
+
+## Reference Loading Guide
+
+**Always read first:**
+- This SKILL.md — core workflow and decision logic
+
+**Load when generating XHTML with ac:layout:**
+- `references/design-system.md` — Color palettes, ac:layout XHTML patterns
+
+**Load only when Draw.io diagram is needed (per §1.2):**
+- `references/drawio-diagram-templates.md` — Diagram type shape styles
+- `references/drawio-gcp-reference.md` — GCP icons, container/arrow styles
+
+---
+
+## Reference Files
+
+- `references/drawio-gcp-reference.md` — GCP prIcon list, style strings, SVG icons, container/arrow patterns
+- `references/drawio-diagram-templates.md` — Diagram type shape styles (flowchart, network, CI/CD, etc.)
+- `references/design-system.md` — 7 color theme palettes (hex values), ac:layout XHTML patterns
